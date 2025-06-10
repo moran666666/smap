@@ -4,7 +4,6 @@ type Smap struct {
 	Method  string
 	Key     any
 	Value   any
-	Length  int
 	DataMap map[any]any
 
 	SmapCh chan *Smap
