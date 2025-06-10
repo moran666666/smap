@@ -1,0 +1,114 @@
+package smap
+
+type Smap struct {
+	Method  string
+	Key     interface{}
+	Value   interface{}
+	Length  int
+	DataMap map[interface{}]interface{}
+
+	SmapCh chan *Smap
+	TxCh   chan interface{}
+}
+
+type KeyValuePair struct {
+	Key   interface{}
+	Value interface{}
+}
+
+func NewSmap() *Smap {
+	obj := &Smap{
+		Method:  "",
+		DataMap: make(map[interface{}]interface{}),
+		SmapCh:  make(chan *Smap),
+		TxCh:    make(chan interface{}),
+	}
+	go obj.schedule()
+	return obj
+}
+
+func (o *Smap) schedule() {
+	for obj := range o.SmapCh {
+		switch obj.Method {
+		case "Set":
+			o.set(obj.Key, obj.Value)
+		case "Delete":
+			o.delete(obj.Key)
+		case "Get":
+			o.get(obj.Key, obj.TxCh)
+		case "Iter":
+			o.iter(obj.TxCh)
+		case "Len":
+			o.len(obj.TxCh)
+		}
+	}
+}
+
+func (o *Smap) Set(k, v interface{}) {
+	Set := NewSmap()
+	Set.Method = "Set"
+	Set.Key = k
+	Set.Value = v
+	o.SmapCh <- Set
+}
+func (o *Smap) set(k, v interface{}) {
+	o.DataMap[k] = v
+}
+
+func (o *Smap) Delete(k interface{}) {
+	Delete := NewSmap()
+	Delete.Method = "Delete"
+	Delete.Key = k
+	o.SmapCh <- Delete
+}
+func (o *Smap) delete(k interface{}) {
+	delete(o.DataMap, k)
+}
+
+func (o *Smap) Get(k interface{}) interface{} {
+	Get := NewSmap()
+	Get.Method = "Get"
+	Get.Key = k
+	o.SmapCh <- Get
+	v := <-Get.TxCh
+	return v
+}
+func (o *Smap) get(k interface{}, TxCh chan interface{}) {
+	v, ok := o.DataMap[k]
+	if !ok {
+		TxCh <- nil
+	} else {
+		TxCh <- v
+	}
+}
+
+func (o *Smap) Iter(IterCh chan interface{}) {
+
+	Iter := NewSmap()
+	Iter.Method = "Iter"
+	o.SmapCh <- Iter
+	go func() {
+		for elt := range Iter.TxCh {
+			IterCh <- elt
+		}
+		close(IterCh)
+	}()
+}
+func (o *Smap) iter(TxCh chan interface{}) {
+	for k, v := range o.DataMap {
+		TxCh <- &KeyValuePair{Key: k, Value: v}
+	}
+	close(TxCh)
+}
+
+func (o *Smap) Len() int {
+	Len := NewSmap()
+	Len.Method = "Len"
+	o.SmapCh <- Len
+	length := <-Len.TxCh
+	lengthInt := length.(int)
+	return lengthInt
+}
+func (o *Smap) len(TxCh chan interface{}) {
+	TxCh <- len(o.DataMap)
+}
