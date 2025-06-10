@@ -2,26 +2,26 @@ package smap
 
 type Smap struct {
 	Method  string
-	Key     interface{}
-	Value   interface{}
+	Key     any
+	Value   any
 	Length  int
-	DataMap map[interface{}]interface{}
+	DataMap map[any]any
 
 	SmapCh chan *Smap
-	TxCh   chan interface{}
+	TxCh   chan any
 }
 
 type KeyValuePair struct {
-	Key   interface{}
-	Value interface{}
+	Key   any
+	Value any
 }
 
 func NewSmap() *Smap {
 	obj := &Smap{
 		Method:  "",
-		DataMap: make(map[interface{}]interface{}),
+		DataMap: make(map[any]any),
 		SmapCh:  make(chan *Smap),
-		TxCh:    make(chan interface{}),
+		TxCh:    make(chan any),
 	}
 	go obj.schedule()
 	return obj
@@ -44,28 +44,28 @@ func (o *Smap) schedule() {
 	}
 }
 
-func (o *Smap) Set(k, v interface{}) {
+func (o *Smap) Set(k, v any) {
 	Set := NewSmap()
 	Set.Method = "Set"
 	Set.Key = k
 	Set.Value = v
 	o.SmapCh <- Set
 }
-func (o *Smap) set(k, v interface{}) {
+func (o *Smap) set(k, v any) {
 	o.DataMap[k] = v
 }
 
-func (o *Smap) Delete(k interface{}) {
+func (o *Smap) Delete(k any) {
 	Delete := NewSmap()
 	Delete.Method = "Delete"
 	Delete.Key = k
 	o.SmapCh <- Delete
 }
-func (o *Smap) delete(k interface{}) {
+func (o *Smap) delete(k any) {
 	delete(o.DataMap, k)
 }
 
-func (o *Smap) Get(k interface{}) interface{} {
+func (o *Smap) Get(k any) any {
 	Get := NewSmap()
 	Get.Method = "Get"
 	Get.Key = k
@@ -73,7 +73,7 @@ func (o *Smap) Get(k interface{}) interface{} {
 	v := <-Get.TxCh
 	return v
 }
-func (o *Smap) get(k interface{}, TxCh chan interface{}) {
+func (o *Smap) get(k any, TxCh chan any) {
 	v, ok := o.DataMap[k]
 	if !ok {
 		TxCh <- nil
@@ -82,7 +82,7 @@ func (o *Smap) get(k interface{}, TxCh chan interface{}) {
 	}
 }
 
-func (o *Smap) Iter(IterCh chan interface{}) {
+func (o *Smap) Iter(IterCh chan any) {
 
 	Iter := NewSmap()
 	Iter.Method = "Iter"
@@ -94,7 +94,7 @@ func (o *Smap) Iter(IterCh chan interface{}) {
 		close(IterCh)
 	}()
 }
-func (o *Smap) iter(TxCh chan interface{}) {
+func (o *Smap) iter(TxCh chan any) {
 	for k, v := range o.DataMap {
 		TxCh <- &KeyValuePair{Key: k, Value: v}
 	}
@@ -109,6 +109,6 @@ func (o *Smap) Len() int {
 	lengthInt := length.(int)
 	return lengthInt
 }
-func (o *Smap) len(TxCh chan interface{}) {
+func (o *Smap) len(TxCh chan any) {
 	TxCh <- len(o.DataMap)
 }
