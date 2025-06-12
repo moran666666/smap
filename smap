@@ -26,54 +26,54 @@ func NewSmap() *Smap {
 	return obj
 }
 
-func (o *Smap) schedule() {
-	for obj := range o.SmapCh {
+func (s *Smap) schedule() {
+	for obj := range s.SmapCh {
 		switch obj.Method {
 		case "Set":
-			o.set(obj.Key, obj.Value)
+			s.set(obj.Key, obj.Value)
 		case "Delete":
-			o.delete(obj.Key)
+			s.delete(obj.Key)
 		case "Get":
-			o.get(obj.Key, obj.TxCh)
+			s.get(obj.Key, obj.TxCh)
 		case "Iter":
-			o.iter(obj.TxCh)
+			s.iter(obj.TxCh)
 		case "Len":
-			o.len(obj.TxCh)
+			s.len(obj.TxCh)
 		}
 	}
 }
 
-func (o *Smap) Set(k, v any) {
+func (s *Smap) Set(k, v any) {
 	Set := NewSmap()
 	Set.Method = "Set"
 	Set.Key = k
 	Set.Value = v
-	o.SmapCh <- Set
+	s.SmapCh <- Set
 }
-func (o *Smap) set(k, v any) {
-	o.DataMap[k] = v
+func (s *Smap) set(k, v any) {
+	s.DataMap[k] = v
 }
 
-func (o *Smap) Delete(k any) {
+func (s *Smap) Delete(k any) {
 	Delete := NewSmap()
 	Delete.Method = "Delete"
 	Delete.Key = k
-	o.SmapCh <- Delete
+	s.SmapCh <- Delete
 }
-func (o *Smap) delete(k any) {
-	delete(o.DataMap, k)
+func (s *Smap) delete(k any) {
+	delete(s.DataMap, k)
 }
 
-func (o *Smap) Get(k any) any {
+func (s *Smap) Get(k any) any {
 	Get := NewSmap()
 	Get.Method = "Get"
 	Get.Key = k
-	o.SmapCh <- Get
+	s.SmapCh <- Get
 	v := <-Get.TxCh
 	return v
 }
-func (o *Smap) get(k any, TxCh chan any) {
-	v, ok := o.DataMap[k]
+func (s *Smap) get(k any, TxCh chan any) {
+	v, ok := s.DataMap[k]
 	if !ok {
 		TxCh <- nil
 	} else {
@@ -81,11 +81,11 @@ func (o *Smap) get(k any, TxCh chan any) {
 	}
 }
 
-func (o *Smap) Iter(IterCh chan any) {
+func (s *Smap) Iter(IterCh chan any) {
 
 	Iter := NewSmap()
 	Iter.Method = "Iter"
-	o.SmapCh <- Iter
+	s.SmapCh <- Iter
 	go func() {
 		for elt := range Iter.TxCh {
 			IterCh <- elt
@@ -93,21 +93,21 @@ func (o *Smap) Iter(IterCh chan any) {
 		close(IterCh)
 	}()
 }
-func (o *Smap) iter(TxCh chan any) {
-	for k, v := range o.DataMap {
+func (s *Smap) iter(TxCh chan any) {
+	for k, v := range s.DataMap {
 		TxCh <- &KeyValuePair{Key: k, Value: v}
 	}
 	close(TxCh)
 }
 
-func (o *Smap) Len() int {
+func (s *Smap) Len() int {
 	Len := NewSmap()
 	Len.Method = "Len"
-	o.SmapCh <- Len
+	s.SmapCh <- Len
 	length := <-Len.TxCh
 	lengthInt := length.(int)
 	return lengthInt
 }
-func (o *Smap) len(TxCh chan any) {
-	TxCh <- len(o.DataMap)
+func (s *Smap) len(TxCh chan any) {
+	TxCh <- len(s.DataMap)
 }
