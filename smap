@@ -82,12 +82,14 @@ func (s *Smap) get(k any, ReturnCh chan any) {
 }
 
 func (s *Smap) Iter(IterCh chan any) {
-
 	Iter := NewSmap()
 	Iter.Method = "Iter"
 	s.SmapCh <- Iter
 	go func() {
 		for elt := range Iter.ReturnCh {
+			if elt == nil {
+				break
+			}
 			IterCh <- elt
 		}
 		close(IterCh)
@@ -97,7 +99,7 @@ func (s *Smap) iter(ReturnCh chan any) {
 	for k, v := range s.DataMap {
 		ReturnCh <- &KeyValuePair{Key: k, Value: v}
 	}
-	close(ReturnCh)
+	ReturnCh <- nil
 }
 
 func (s *Smap) Len() int {
