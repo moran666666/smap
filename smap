@@ -16,13 +16,17 @@ type KeyValuePair struct {
 }
 
 func NewSmap() *Smap {
+	obj := newSmap()
+	go obj.schedule()
+	return obj
+}
+func newSmap() *Smap {
 	obj := &Smap{
 		Method:   "",
 		DataMap:  make(map[any]any),
 		SmapCh:   make(chan *Smap),
 		ReturnCh: make(chan any),
 	}
-	go obj.schedule()
 	return obj
 }
 
@@ -44,7 +48,7 @@ func (s *Smap) schedule() {
 }
 
 func (s *Smap) Set(k, v any) {
-	Set := NewSmap()
+	Set := newSmap()
 	Set.Method = "Set"
 	Set.Key = k
 	Set.Value = v
@@ -55,7 +59,7 @@ func (s *Smap) set(k, v any) {
 }
 
 func (s *Smap) Delete(k any) {
-	Delete := NewSmap()
+	Delete := newSmap()
 	Delete.Method = "Delete"
 	Delete.Key = k
 	s.SmapCh <- Delete
@@ -65,7 +69,7 @@ func (s *Smap) delete(k any) {
 }
 
 func (s *Smap) Get(k any) any {
-	Get := NewSmap()
+	Get := newSmap()
 	Get.Method = "Get"
 	Get.Key = k
 	s.SmapCh <- Get
@@ -82,7 +86,7 @@ func (s *Smap) get(k any, ReturnCh chan any) {
 }
 
 func (s *Smap) Iter(IterCh chan any) {
-	Iter := NewSmap()
+	Iter := newSmap()
 	Iter.Method = "Iter"
 	s.SmapCh <- Iter
 	go func() {
@@ -103,7 +107,7 @@ func (s *Smap) iter(ReturnCh chan any) {
 }
 
 func (s *Smap) Len() int {
-	Len := NewSmap()
+	Len := newSmap()
 	Len.Method = "Len"
 	s.SmapCh <- Len
 	length := <-Len.ReturnCh
